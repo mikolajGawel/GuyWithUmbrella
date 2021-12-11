@@ -151,11 +151,13 @@ void update_rocket(struct rocket* rocket)
         new_rocket(rocket);
     rocket->y-=8;
 }
+Sound ex[2];//explosion_sounds
 void check_rocket_collision(struct rocket* rocket,struct player* player)
 {
     if(CheckCollisionRecs((Rectangle){rocket->x,rocket->y,rocket->w,rocket->h},(Rectangle){player->x+3*4,player->y+4*3,player->w-3*4,player->h-3*4}))
     {
         game_state = GAME_OVER;
+        PlaySound(ex[rand()%2]);
         //printf(TextFormat("Player Was Killed By Rocket Number:%i",rocket->num));
     }
 }
@@ -170,8 +172,11 @@ int main()
     
     srand(time(NULL));
     InitWindow(WIDTH,HEIGHT,"Guy with Umbrella");
+    InitAudioDevice();
     SetTargetFPS(40);
-    
+    Sound start_sound = LoadSound("start.wav");
+    ex[0]= LoadSound("rsc/explosion_1.wav");
+    ex[1]= LoadSound("rsc/explosion_2.wav");
     struct player player;
     init_player(&player,(512-11*4)/2,32*4,11*4,18*4,"rsc/guy.png");
     struct block left[10];
@@ -211,9 +216,15 @@ int main()
     rocket_textures[1].height *=4;
     UnloadImage(i);
     game_state = IN_MENU;
+    int is_start = 0;
     while(!WindowShouldClose())
     {
         if(game_state == IN_GAME){
+            if(is_start == 0)
+            {
+                PlaySound(start_sound);
+                is_start = 1; 
+            }
             if(rocketFrame < 20)
             {
                 for(int i = 0;i < 10;i++)
@@ -222,7 +233,7 @@ int main()
                 }
             }else if(rocketFrame > 20)
             {
-                 for(int i = 0;i < 10;i++)
+                for(int i = 0;i < 10;i++)
                 {
                     rockets[i].t = rocket_textures[1];
                 }
@@ -278,6 +289,7 @@ int main()
             BeginDrawing();
                 ClearBackground(C_CYAN);
             update_blocks_row(left);
+
             update_blocks_row(right);
             draw_blocks_row(left);
             draw_blocks_row(right);
@@ -285,7 +297,8 @@ int main()
             DrawTexture(title_info,0,HEIGHT-32*4,C_WHITE);
             DrawTexture(player.t,player.x,player.y,C_WHITE);
              if(IsKeyDown(KEY_SPACE))
-            {
+             {
+
                 init_player(&player,(512-11*4)/2,32*4,11*4,18*4,"rsc/guy.png");
                 init_blocks_row(left,0,0,16*4,16*4,"rsc/rock.png");
                 init_blocks_row(right,WIDTH-4*16,0,4*16,4*16,"rsc/rock.png");
@@ -293,6 +306,7 @@ int main()
                 {
                     init_rocket(&rockets[i],8*4,20*4,i*128);
                 }
+                is_start = 0;
                 game_state = IN_GAME;
             }
             EndDrawing();
@@ -302,6 +316,7 @@ int main()
     {
         UnloadTexture(rockets[i].t);
     }
+    UnloadSound(start_sound);
     UnloadTexture(rocket_textures[0]);
     UnloadTexture(rocket_textures[1]);
     UnloadTexture(title_info);
@@ -310,6 +325,9 @@ int main()
     destroy_blocks_row(left);
     destroy_blocks_row(right);
     UnloadTexture(Game_Over_Texture);
+    UnloadSound(ex[0]);
+    UnloadSound(ex[1]);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
